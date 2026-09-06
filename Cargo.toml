@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "HTML+CSS to text, for eyes that read better than they see. Layout by Servo."
 license = "MIT"
+repository = "https://github.com/f3liz-casa/senga"
 
 [dependencies]
 servo = { path = "../servo/components/servo", features = ["webcrypto"] }

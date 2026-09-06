@@ -78,7 +78,7 @@ viewport 800×600, document 980×682, 19 elements, lang=ja
 senga is a Rust crate that embeds [Servo](https://servo.org) as a library. Servo is not on crates.io, so it is used from a sibling checkout as a path dependency, pinned to the commit in `SERVO_COMMIT`.
 
 ```
-git clone https://github.com/nyanrus/senga && cd senga
+git clone https://github.com/f3liz-casa/senga && cd senga
 scripts/fetch-servo.sh          # shallow clone of Servo into ../servo, at the pinned commit
 brew install cmake pkg-config   # macOS; what Servo's own `mach bootstrap` installs
 cargo build --release
