@@ -1,0 +1,17 @@
+[package]
+name = "senga"
+version = "0.1.0"
+edition = "2024"
+description = "HTML+CSS to text, for eyes that read better than they see. Layout by Servo."
+license = "MIT"
+
+[dependencies]
+servo = { path = "../servo/components/servo" }
+dpi = "0.1"
+url = "2.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "std", "tls12"] }
+
+[profile.release]
+debug = false
