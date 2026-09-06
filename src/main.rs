@@ -34,6 +34,10 @@ fn parse_args() -> Args {
             "--json" => args.json = true,
             "--wait" => args.wait_ms = it.next().and_then(|v| v.parse().ok()).expect("--wait MS"),
             "--cols" => args.cols = it.next().and_then(|v| v.parse().ok()).expect("--cols N"),
+            "--help" | "-h" => {
+                args.target.clear();
+                break;
+            },
             _ if a.starts_with("--") => {
                 eprintln!("unknown option {a}");
                 std::process::exit(2);
