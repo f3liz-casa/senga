@@ -287,7 +287,9 @@ impl Canvas {
         let mut k = col;
         while k > 0 {
             k -= 1;
-            let cell = &mut self.cells[row * self.cols + k];
+            let Some(cell) = self.cells.get_mut(row * self.cols + k) else {
+                break;
+            };
             if *cell == ' ' || "─│┌┐└┘·╌".contains(*cell) {
                 break;
             }
