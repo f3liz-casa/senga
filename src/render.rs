@@ -283,6 +283,16 @@ impl Canvas {
                 }
             }
         }
+        // ...and the head of a name we are about to step into the middle of.
+        let mut k = col;
+        while k > 0 {
+            k -= 1;
+            let cell = &mut self.cells[row * self.cols + k];
+            if *cell == ' ' || "─│┌┐└┘·╌".contains(*cell) {
+                break;
+            }
+            *cell = filler;
+        }
         let text = fit(text, max);
         let mut k = 0;
         for ch in text.chars() {
