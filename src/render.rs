@@ -18,6 +18,9 @@ pub struct Page {
     pub doc_height: f64,
     #[serde(default)]
     pub lang: String,
+    /// What shows through where nothing is painted: `<html>`'s or `<body>`'s background, else white.
+    #[serde(rename = "canvasBg", default)]
+    pub canvas_bg: String,
     pub boxes: Vec<Box_>,
 }
 
@@ -48,7 +51,8 @@ pub struct Box_ {
     pub color: String,
     #[serde(default)]
     pub bg: String,
-    #[serde(rename = "effBg", default)]
+    /// Filled in by [`Page::settle`]: the colour actually behind this element's text.
+    #[serde(skip)]
     pub eff_bg: String,
     #[serde(default)]
     pub border: bool,
@@ -197,6 +201,30 @@ fn contrast(fg: &str, bg: &str) -> Option<f64> {
     let (l1, l2) = (luminance(f), luminance(b));
     let (hi, lo) = if l1 > l2 { (l1, l2) } else { (l2, l1) };
     Some((hi + 0.05) / (lo + 0.05))
+}
+
+// ---------- effective backgrounds ----------
+
+impl Page {
+    /// Work out what is really behind each element: its own background if
+    /// opaque, a translucent one blended over whatever is behind its parent,
+    /// or simply the parent's. `rgba(0, 0, 0, 0.5)` on white is grey, not black.
+    pub fn settle(&mut self) {
+        let canvas = parse_rgb(&self.canvas_bg).map(|(c, _)| c).unwrap_or([255.0, 255.0, 255.0]);
+        let mut behind: Vec<[f64; 3]> = Vec::with_capacity(self.boxes.len());
+        for k in 0..self.boxes.len() {
+            let parent = self.boxes[k].parent;
+            let under = if parent >= 0 { behind[parent as usize] } else { canvas };
+            let own = if self.boxes[k].bg.is_empty() { None } else { parse_rgb(&self.boxes[k].bg) };
+            let eff = match own {
+                Some((c, a)) if a >= 1.0 => c,
+                Some((c, a)) => [0, 1, 2].map(|i| c[i] * a + under[i] * (1.0 - a)),
+                None => under,
+            };
+            behind.push(eff);
+            self.boxes[k].eff_bg = format!("rgb({}, {}, {})", eff[0].round(), eff[1].round(), eff[2].round());
+        }
+    }
 }
 
 // ---------- wireframe ----------

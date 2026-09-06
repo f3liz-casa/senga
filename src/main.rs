@@ -158,7 +158,8 @@ fn main() {
     if args.json {
         println!("{json}");
     } else {
-        let page: senga::Page = serde_json::from_str(&json).expect("parse layout json");
+        let mut page: senga::Page = serde_json::from_str(&json).expect("parse layout json");
+        page.settle();
         let opts = senga::Options { cols: args.cols, ..Default::default() };
         print!("{}", senga::render_with(&page, &opts));
         // What the page said while it was coming up. Errors here usually explain

@@ -8,6 +8,7 @@ What `senga --json` prints, and what `src/render.rs` reads. It is produced by `s
   "width": 800, "height": 600,
   "docWidth": 980, "docHeight": 682,
   "lang": "ja",
+  "canvasBg": "rgb(255, 255, 255)",
   "boxes": [ ... ]
 }
 ```
@@ -17,6 +18,7 @@ What `senga --json` prints, and what `src/render.rs` reads. It is produced by `s
 | `width`, `height` | viewport |
 | `docWidth`, `docHeight` | `documentElement.scrollWidth/Height`; wider than the viewport means a horizontal scrollbar |
 | `lang` | `<html lang>` |
+| `canvasBg` | what shows where nothing is painted: `<html>`'s background, else `<body>`'s, else white |
 | `boxes` | every rendered element from `<body>` down, in document order (parents before children) |
 
 ## Box
@@ -30,7 +32,7 @@ What `senga --json` prints, and what `src/render.rs` reads. It is produced by `s
   "display": "block", "position": "static",
   "fontSize": 16, "fontWeight": 400,
   "color": "rgb(153, 153, 153)",
-  "bg": "", "effBg": "rgb(255, 255, 255)",
+  "bg": "",
   "border": false,
   "overflow": "visible", "clipped": false,
   "pad": [0, 0, 0, 0], "margin": [0, 0, 24, 0], "gap": 0,
@@ -49,13 +51,14 @@ What `senga --json` prints, and what `src/render.rs` reads. It is produced by `s
 | `fontSize`, `fontWeight` | computed, px and numeric weight |
 | `color` | computed text colour, as the engine serialises it: `rgb()`, `rgba()`, or `oklch()`/`oklab()` when the stylesheet used those |
 | `bg` | own background colour, or `""` when transparent |
-| `effBg` | the nearest opaque background behind this element: its own, or inherited down from the closest painted ancestor, or the canvas colour. Contrast is computed against this. Semi-transparent backgrounds are taken as they are, not blended |
 | `border` | any side has a visible border |
 | `overflow` | `"visible"` or the computed `overflow-x` |
 | `clipped` | `overflow` is not visible and scroll size exceeds client size by more than 1 px |
 | `pad`, `margin` | `[top, right, bottom, left]` |
 | `gap` | `gap` for flex and grid containers, else 0 |
 | `alt` | only on `<img>`: the attribute, or `null` when absent |
+
+The dump carries only each element's own background. The renderer works out what is really behind each one (`Page::settle`): an opaque background, a translucent one blended over what is behind its parent, or the parent's. Contrast is computed against that.
 
 ## What is left out
 

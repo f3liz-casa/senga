@@ -22,7 +22,7 @@
     return s.length > 80 ? s.slice(0, 77) + "..." : s;
   };
 
-  const walk = (el, parent, depth, inheritedBg) => {
+  const walk = (el, parent, depth) => {
     if (boxes.length >= LIMIT || SKIP.has(el.tagName)) return;
     const cs = getComputedStyle(el);
     if (cs.display === "none" || cs.visibility === "hidden") return;
@@ -30,7 +30,6 @@
     const x = r.left + scrollX, y = r.top + scrollY;
     const bg = cs.backgroundColor;
     const ownBg = alpha(bg) > 0;
-    const effBg = ownBg ? bg : inheritedBg;
     const hasBorder = ["Top", "Right", "Bottom", "Left"]
       .some((s) => px(cs["border" + s + "Width"]) > 0 && cs["border" + s + "Style"] !== "none");
     const overflow = cs.overflowX === "visible" && cs.overflowY === "visible" ? "visible" : cs.overflowX;
@@ -53,7 +52,6 @@
       fontWeight: parseInt(cs.fontWeight) || 400,
       color: cs.color,
       bg: ownBg ? bg : "",
-      effBg,
       border: hasBorder,
       overflow, clipped,
       pad: sides(cs, "padding"),
@@ -61,12 +59,12 @@
       gap: cs.display.includes("flex") || cs.display.includes("grid") ? px(cs.gap || cs.rowGap) : 0,
       alt: el.tagName === "IMG" ? (el.getAttribute("alt") ?? null) : undefined,
     });
-    for (const c of el.children) walk(c, i, depth + 1, effBg);
+    for (const c of el.children) walk(c, i, depth + 1);
   };
 
   const rootBg = getComputedStyle(document.documentElement).backgroundColor;
   const canvasBg = alpha(rootBg) > 0 ? rootBg : (alpha(getComputedStyle(document.body).backgroundColor) > 0 ? getComputedStyle(document.body).backgroundColor : "rgb(255, 255, 255)");
-  walk(document.body, -1, 0, canvasBg);
+  walk(document.body, -1, 0);
 
   return JSON.stringify({
     title: document.title,
@@ -74,6 +72,7 @@
     docWidth: document.documentElement.scrollWidth,
     docHeight: document.documentElement.scrollHeight,
     lang: document.documentElement.lang || "",
+    canvasBg,
     boxes,
   });
 })()
