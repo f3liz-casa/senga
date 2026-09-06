@@ -5285,6 +5285,7 @@ name = "senga"
 version = "0.1.0"
 dependencies = [
  "dpi",
+ "image",
  "rustls",
  "serde",
  "serde_json",

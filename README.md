@@ -122,6 +122,7 @@ senga page.html --png shot.png       # also save what Servo painted
 senga page.html --json               # the raw layout dump, for other tools
 senga page.html --cols 80            # narrower wireframe
 senga app/index.html --wait 1500     # wait after `load` for a client-side app to settle
+senga page.html --compare chrome.png --compare-out side.png   # how far Servo's painting is from another browser's
 ```
 
 | Option | Default | Meaning |
@@ -131,6 +132,8 @@ senga app/index.html --wait 1500     # wait after `load` for a client-side app t
 | `--wait` | 0 | milliseconds to keep the event loop running after `load`, for hydration and fetched content |
 | `--png` | | write Servo's own painting of the viewport |
 | `--json` | | print the layout dump instead of the text report |
+| `--compare` | | a PNG of the same viewport from another browser; adds a band-by-band difference report |
+| `--compare-out` | | with `--compare`: write Servo's painting and the reference side by side, for looking at the band that jumped |
 
 A local file path or any URL works. Loading goes through Servo's own network stack, so `https` and redirects behave as in a browser.
 
@@ -143,6 +146,23 @@ A local file path or any URL works. Loading goes through Servo's own network sta
 **Findings.** Each line is a measurement, not an opinion. Contrast thresholds follow WCAG AA (4.5:1, or 3:1 for text at 24 px or bold 19 px). Tap targets are flagged under 24 px. Off-grid spacing is reported in the palette, not as a finding, because it is often deliberate.
 
 **Console.** Everything the page logged while loading. When the wireframe is nearly empty, read this first.
+
+### Comparing with another browser
+
+`--compare` takes a screenshot of the same URL at the same viewport from a browser people actually use and reports, per 100 px band, how many pixels differ. Font rendering differs everywhere and stays under a few percent. A band that stands well above its neighbours is where the two layouts disagree; `--compare-out` writes the two paintings side by side so that band can be looked at.
+
+Chrome takes a usable reference from the command line:
+
+```
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+  --hide-scrollbars --user-data-dir=/tmp/senga-chrome --window-size=1280,800 \
+  --screenshot=ref.png https://example.org/
+senga https://example.org/ --width 1280 --height 800 --compare ref.png --compare-out side.png
+```
+
+Headless Chrome writes the file and then does not always exit; kill it. Headless Firefox with `--screenshot` hands the request to an already running Firefox and never returns, so close Firefox first or use a separate profile. For a page taller than the viewport, give both the same large `--height` / `--window-size`.
+
+On servo.org this gives 2.4% differing on the first screen and 4.5% over the full page, all font rendering except one paragraph that wraps one word earlier in Chrome.
 
 ## Layout dump
 
@@ -162,6 +182,7 @@ On macOS the software GL context prints one `UNSUPPORTED (log once)` line on std
 src/main.rs      drives Servo: headless context, load, settle, run extract.js, print
 src/extract.js   runs inside the page, produces the layout dump
 src/render.rs    layout dump to text: wireframe, findings, list, palette
+src/compare.rs   Servo's painting against a reference PNG, band by band
 src/lib.rs       exposes render for other front ends
 scripts/fetch-servo.sh   shallow clone of Servo at SERVO_COMMIT
 SERVO_COMMIT     the Servo commit senga is built against

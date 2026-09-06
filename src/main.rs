@@ -21,10 +21,12 @@ struct Args {
     json: bool,
     cols: usize,
     wait_ms: u64,
+    compare: Option<String>,
+    compare_out: Option<String>,
 }
 
 fn parse_args() -> Args {
-    let mut args = Args { target: String::new(), width: 1280, height: 800, png: None, json: false, cols: 100, wait_ms: 0 };
+    let mut args = Args { target: String::new(), width: 1280, height: 800, png: None, json: false, cols: 100, wait_ms: 0, compare: None, compare_out: None };
     let mut it = std::env::args().skip(1);
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -32,6 +34,8 @@ fn parse_args() -> Args {
             "--height" => args.height = it.next().and_then(|v| v.parse().ok()).expect("--height N"),
             "--png" => args.png = it.next(),
             "--json" => args.json = true,
+            "--compare" => args.compare = it.next(),
+            "--compare-out" => args.compare_out = it.next(),
             "--wait" => args.wait_ms = it.next().and_then(|v| v.parse().ok()).expect("--wait MS"),
             "--cols" => args.cols = it.next().and_then(|v| v.parse().ok()).expect("--cols N"),
             "--help" | "-h" => {
@@ -46,7 +50,7 @@ fn parse_args() -> Args {
         }
     }
     if args.target.is_empty() {
-        eprintln!("usage: senga <file.html|url> [--width 1280] [--height 800] [--png out.png] [--cols 100] [--wait 500] [--json]");
+        eprintln!("usage: senga <file.html|url> [--width 1280] [--height 800] [--png out.png] [--cols 100] [--wait 500] [--json] [--compare ref.png [--compare-out side.png]]");
         std::process::exit(2);
     }
     args
@@ -135,11 +139,15 @@ fn main() {
     let shot_out = shot.clone();
     webview.take_screenshot(None, move |result| *shot_out.borrow_mut() = Some(result));
     spin(&servo, || shot.borrow().is_some());
-    if let Some(path) = &args.png {
-        match shot.borrow_mut().take().unwrap() {
-            Ok(image) => image.save(path).expect("write png"),
-            Err(e) => eprintln!("screenshot failed: {e:?}"),
-        }
+    let painted = match shot.borrow_mut().take().unwrap() {
+        Ok(image) => Some(image),
+        Err(e) => {
+            eprintln!("screenshot failed: {e:?}");
+            None
+        },
+    };
+    if let (Some(path), Some(image)) = (&args.png, &painted) {
+        image.save(path).expect("write png");
     }
 
     let out: Rc<RefCell<Option<Result<JSValue, _>>>> = Rc::new(RefCell::new(None));
@@ -162,6 +170,15 @@ fn main() {
         page.settle();
         let opts = senga::Options { cols: args.cols, ..Default::default() };
         print!("{}", senga::render_with(&page, &opts));
+        if let (Some(path), Some(ours)) = (&args.compare, &painted) {
+            let theirs = image::open(path).expect("read reference png").to_rgba8();
+            let comparison = senga::compare(ours, &theirs);
+            println!();
+            print!("{}", senga::compare_report(&comparison, ours, &theirs));
+            if let Some(out) = &args.compare_out {
+                senga::side_by_side(ours, &theirs).save(out).expect("write side-by-side png");
+            }
+        }
         // What the page said while it was coming up. Errors here usually explain
         // an empty wireframe better than the wireframe can.
         let console = delegate.console.borrow();
