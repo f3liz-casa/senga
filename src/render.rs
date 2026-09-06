@@ -121,8 +121,10 @@ impl Box_ {
         CONTAINERS.contains(&t) || WIDGETS.contains(&t) || self.is_textish() || self.border || !self.bg.is_empty()
             || (t == "a" && self.is_block())
     }
+    /// Text that is actually on the page: hidden `<option>`s and closed
+    /// `<details>` bodies measure 0×0 and are left out.
     fn has_text(&self) -> bool {
-        !self.text.is_empty()
+        !self.text.is_empty() && self.w > 0.0 && self.h > 0.0
     }
 }
 

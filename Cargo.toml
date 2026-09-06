@@ -6,7 +6,7 @@ description = "HTML+CSS to text, for eyes that read better than they see. Layout
 license = "MIT"
 
 [dependencies]
-servo = { path = "../servo/components/servo" }
+servo = { path = "../servo/components/servo", features = ["webcrypto"] }
 dpi = "0.1"
 url = "2.5"
 serde = { version = "1", features = ["derive"] }

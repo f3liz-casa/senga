@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use dpi::PhysicalSize;
 use servo::{
-    EventLoopWaker, JSValue, LoadStatus, Preferences, RenderingContext, Servo, ServoBuilder,
+    ConsoleLogLevel, EventLoopWaker, JSValue, LoadStatus, Preferences, RenderingContext, Servo, ServoBuilder,
     SoftwareRenderingContext, WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
@@ -72,8 +72,12 @@ impl EventLoopWaker for Waker {
 #[derive(Default)]
 struct Delegate {
     loaded: Cell<bool>,
+    console: RefCell<Vec<(ConsoleLogLevel, String)>>,
 }
 impl WebViewDelegate for Delegate {
+    fn show_console_message(&self, _: WebView, level: ConsoleLogLevel, message: String) {
+        self.console.borrow_mut().push((level, message));
+    }
     fn notify_new_frame_ready(&self, webview: WebView) {
         webview.paint();
     }
@@ -157,6 +161,16 @@ fn main() {
         let page: senga::Page = serde_json::from_str(&json).expect("parse layout json");
         let opts = senga::Options { cols: args.cols, ..Default::default() };
         print!("{}", senga::render_with(&page, &opts));
+        // What the page said while it was coming up. Errors here usually explain
+        // an empty wireframe better than the wireframe can.
+        let console = delegate.console.borrow();
+        if !console.is_empty() {
+            println!("\n## Console  ({} messages)", console.len());
+            for (level, message) in console.iter().take(30) {
+                let line: String = message.lines().next().unwrap_or("").chars().take(300).collect();
+                println!("- {level:?}: {line}");
+            }
+        }
     }
     drop(webview);
     drop(servo);
